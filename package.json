@@ -1,0 +1,16 @@
+{
+  "name": "rw-analysis",
+  "version": "1.0.0",
+  "description": "To Analyze Net Score in RW",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1"
+  }
+}
