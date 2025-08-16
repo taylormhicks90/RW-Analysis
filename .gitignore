@@ -1,4 +1,4 @@
 cache/*
 outputs/*
 node_modules/
-.env
+./.env
