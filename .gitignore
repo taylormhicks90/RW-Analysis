@@ -2,3 +2,5 @@ cache/*
 outputs/*
 node_modules/
 .env
+chedded.json
+.vscode/

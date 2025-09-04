@@ -83,7 +83,7 @@ export async function getLastRankedWar(ApiKey) {
 
 export async function ensureMemberExistsInResults(results,member) {
     if (!results[member.id]) {
-        results[member.id] = {member:member, attacks: 0, defends: 0,assists:0, points_gained: 0, points_lost: 0, outside_hits:0, outside_chain: 0};
+        results[member.id] = {member:member, attacks: 0, defends: 0,assists:0, points_gained: 0, points_lost: 0, outside_hits:0, outside_chain: 0, chain_bonus: 0};
     }
 }
 

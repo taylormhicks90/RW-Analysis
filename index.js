@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 
 import { ensureMemberExistsInResults, getAttacks, getLastRankedWar, getWars, askQuestion} from "./functions.js";
-
+import { ChainBonus } from "./ChainBonus.js";
 const API_KEY = process.env.API_KEY;
 const FACTION_ID = Number(process.env.FACTION_ID);
 
@@ -10,19 +10,18 @@ let war = null;
 
 let lastInput = null;
 
-lastInput = await askQuestion('Process Last War? [Y/N]');
+//lastInput = await askQuestion('Process Last War? [Y/N]');
+//if (lastInput.toLowerCase().trim() === 'y') war = await getLastRankedWar(API_KEY);
+// else{
+//     const wars = await getWars(API_KEY);
+//     for(let index in wars){
+//         console.log(`[${index}] - ${wars[index].factions[0].name} vs ${wars[index].factions[1].name}`);
+//     }
+//     lastInput = await askQuestion('Select War: ');
+//     war = wars[lastInput];
+// }
 
-if (lastInput.toLowerCase == 'y') war = await getLastRankedWar(API_KEY);
-else{
-    const wars = await getWars(API_KEY);
-    for(let index in wars){
-        console.log(`[${index}] - ${wars[index].factions[0].name} vs ${wars[index].factions[1].name}`);
-    }
-    lastInput = await askQuestion('Select War: ');
-    war = wars[lastInput];
-}
-
-
+war = await getLastRankedWar(API_KEY);
 
 
 let faction = null
@@ -39,6 +38,8 @@ const attacks = await getAttacks(API_KEY,war);
 
 let results = {};
 
+//false rw attacks
+//let chedded = [];
 
 attacks.forEach(attack => {
     let type = null;
@@ -58,6 +59,12 @@ attacks.forEach(attack => {
             console.log(attack);
             return;
         }
+
+        // //identify false ranked war attacks
+        // if(attack.is_ranked_war && attack.modifiers.war ==1 && attack.result != "Lost" && attack.result != "Assist" && attack.result != "Interrupted" && attack.result != "Escaped" && attack.result != "Stalemate"){
+        //     chedded.push(attack);
+        //     console.log(attack);
+        // }
         
         //process results
         switch (type) {
@@ -65,14 +72,14 @@ attacks.forEach(attack => {
                 member = attack.attacker;
                 ensureMemberExistsInResults(results,member);
                 // tally war hits
-                if(attack.is_ranked_war){
+                if(attack.is_ranked_war && attack.result != "Assist" && attack.result != "Lost" && attack.result != "Interrupted" && attack.result != "Escaped" && attack.result != "Stalemate"){
                     results[member.id].attacks += 1;
                     results[member.id].points_gained += attack.respect_gain;
                 }
                 //tally war Assists
-                else if(attack.results == "Assist" && attack.defender.faction.id == opposingFaction.id) {
+                else if(attack.result == "Assist" && attack.defender.faction?.id == opposingFaction.id) {
                         results[member.id].assists += 1;
-                        console.log(attack);
+                        //console.log(attack);
                 }
                 //Tally outside chain hits
                 else if (attack.is_ranked_war == false && attack.chain >= 10 && attack.result != "Lost"){
@@ -82,12 +89,16 @@ attacks.forEach(attack => {
                 else{
                     results[member.id].outside_hits += 1;
                 }
+
+                if(attack.chain in ChainBonus && attack.is_ranked_war){
+                    results[member.id].chain_bonus += ChainBonus[attack.chain];
+                }
                 break;
 
             case "defend":
                 member = attack.defender;
                 ensureMemberExistsInResults(results,member);
-                if(attack.is_ranked_war){
+                if(attack.is_ranked_war && attack.modifiers.war == 2){
                     results[member.id].defends += 1;
                     results[member.id].points_lost += attack.respect_gain;
                 }
@@ -105,11 +116,16 @@ attacks.forEach(attack => {
 //Output to terminal as comma seperated values to copy and paste to excel
 
 if(fs.existsSync(outputFile)) fs.unlinkSync(outputFile,()=>{});
-fs.writeFileSync(outputFile,'ID,Name,Attacks,Defends,Assists,Outside Hits,Outside Chain Hits,Points Gained,Points Lost,Net Points\n',{encoding: 'utf-8', flag:'a'})
+fs.writeFileSync(outputFile,'ID,Name,Attacks,Defends,Assists,Outside Hits,Outside Chain Hits,Points Gained,Chain Bonus,Points Lost,Net Points\n',{encoding: 'utf-8', flag:'a'})
 //console.log('ID,Name,Attacks,Defends,Assists,Outside Hits,Outside Chain Hits,Points Gained,Points Lost,Net Points');
 for (let id in results){
     let member = results[id];
-    fs.writeFileSync(outputFile,`${member.member.id},${member.member.name},${member.attacks},${member.defends},${member.assists},${member.outside_hits},${member.outside_chain},${member.points_gained},${member.points_lost},${member.points_gained - member.points_lost}\n`,{encoding: 'utf-8', flag:'a'});
+    fs.writeFileSync(outputFile,`${member.member.id},${member.member.name},${member.attacks},${member.defends},${member.assists},${member.outside_hits},${member.outside_chain},${member.points_gained},${member.chain_bonus},${member.points_lost},${member.points_gained - member.points_lost}\n`,{encoding: 'utf-8', flag:'a'});
 }
 
-
+    // //try and write a cache file, if this fails we will recover and continue processing the attacks without saving to a cache
+    // try{
+    //     fs.writeFileSync("./chedded.json",JSON.stringify(chedded),'utf-8');
+    // }catch (err){
+    //     console.error('Error writing cache file',err)
+    // }
